@@ -1,0 +1,7 @@
+<!--index.wxml-->
+<view class="container">
+
+    <button bindtap="checkPDF" style="margin-top: 20rpx">预览PDF</button>
+
+</view>
+

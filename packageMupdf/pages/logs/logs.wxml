@@ -1,0 +1,9 @@
+<!--logs.wxml-->
+<progress wx:if="{{array.length === 0}}" percent="{{progress}}" show-info />
+<view class="container" style="background:#ededf0">
+    <image wx:if="{{array.length > 0}}" wx:for="{{array}}" style="margin-bottom:2px;margin-top:2px;width: {{item.width}}px;height:{{item.height}}px;"
+           mode="aspectFit"
+           bindtap="preview"
+           data-src="data:image/png;base64,{{item.base64}}"
+           src="data:image/png;base64,{{item.base64}}"></image>
+</view>
