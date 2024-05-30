@@ -20,7 +20,7 @@ Page({
         let that = this
         init({
             instantiateWasm(info, callback) {
-                WXWebAssembly.instantiate('packageMupdf/lib/libmupdf.wasm.br', info).then(({instance}) => {
+                WXWebAssembly.instantiate('packageMupdf/lib/libmupdf.wasm', info).then(({instance}) => {
                     callback(instance)
                 })
                 return {}
