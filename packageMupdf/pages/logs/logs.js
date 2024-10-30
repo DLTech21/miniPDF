@@ -1,7 +1,9 @@
 // logs.js
 import init from '../../lib/libmupdf.js'
 
+let page = 0
 const app = getApp()
+
 Page({
     data: {
         doc: null,
@@ -9,7 +11,8 @@ Page({
         src: null,
         currentPage: 1,
         array: [],
-        progress: 0
+        progress: 0,
+        hasMore: false
     },
     onLoad(options) {
         let screenWidth = wx.getSystemInfoSync().windowWidth;
@@ -40,25 +43,51 @@ Page({
                 success(res) {
                     that.data.doc = that.openDocumentFromBuffer(res.data, that.data.title)
                     that.data.counts = app.globalData.countPages(that.data.doc);
-                    let array = []
-                    for (let i = 0; i < that.data.counts; i++) {
-                        const width = app.globalData.pageWidth(that.data.doc, i + 1, 96);
-                        const h = app.globalData.pageHeight(that.data.doc, i + 1, 96)
-                        const height = h * (screenWidth - 10) / width
-                        let data = that.drawPageAsPNG(that.data.doc, i + 1, 96)
-                        let base64 = wx.arrayBufferToBase64(data)
-                        array.push({width: screenWidth - 10, height, base64})
-                        that.setData({
-                            progress: ((i + 1) / that.data.counts * 100).toFixed(0)
-                        })
-                    }
-                    that.setData({
-                        array: array
-                    })
+                    that.draw(page)
                 }
             })
         })
 
+    },
+
+    draw(pageIndex) {
+        wx.showLoading({
+            title: '加载中',
+        })
+        const fs = wx.getFileSystemManager()
+        let hasMore = true
+        const pageSize = 5;
+        let start = pageIndex * pageSize;
+        let end = (pageIndex + 1) * pageSize;
+        if (end >= this.data.counts) {
+            hasMore = false
+        }
+        let screenWidth = wx.getSystemInfoSync().windowWidth;
+        let array = []
+        for (let i = start; i < (hasMore ? end : this.data.counts); i++) {
+            const width = app.globalData.pageWidth(this.data.doc, i + 1, 96);
+            const h = app.globalData.pageHeight(this.data.doc, i + 1, 96)
+            const height = h * (screenWidth - 10) / width
+            let data = this.drawPageAsPNG(this.data.doc, i + 1, 96)
+            // let base64 = wx.arrayBufferToBase64(data)
+            console.log(`${wx.env.USER_DATA_PATH}/${i}.png`)
+            try {
+                const res = fs.writeFileSync(`${wx.env.USER_DATA_PATH}/${i}.png`,
+                    data,
+                    'binary'
+                )
+                console.log(res)
+                array.push({width: screenWidth - 10, height, res: `${wx.env.USER_DATA_PATH}/${i}.png`})
+            } catch (e) {
+                console.error(e)
+            }
+        }
+        this.data.array = this.data.array.concat(array)
+        this.setData({
+            array: this.data.array,
+            hasMore: hasMore
+        })
+        wx.hideLoading()
     },
 
     openDocumentFromBuffer(data, magic) {
@@ -74,6 +103,14 @@ Page({
         let n = app.globalData.getLastDrawSize();
         let p = app.globalData.getLastDrawData();
         return app.globalData.Module.HEAPU8.buffer.slice(p, p + n);
+    },
+
+    onReachBottom() {
+        if (this.data.hasMore) {
+            this.data.hasMore = false
+            page++
+            this.draw(page)
+        }
     },
 
     preview(event) {
